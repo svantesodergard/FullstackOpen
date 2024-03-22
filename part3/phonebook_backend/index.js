@@ -1,3 +1,5 @@
+const Person = require('./models/person')
+
 const express = require('express')
 const app = express()
 const morgan = require('morgan')
@@ -10,29 +12,6 @@ app.use(cors())
 app.use(express.json())
 app.use(morgan('tiny'))
 
-let data = [
-    { 
-        "id": 1,
-        "name": "Arto Hellas", 
-        "number": "040-123456"
-    },
-    { 
-        "id": 2,
-        "name": "Ada Lovelace", 
-        "number": "39-44-5323523"
-    },
-    { 
-        "id": 3,
-        "name": "Dan Abramov", 
-        "number": "12-43-234345"
-    },
-    { 
-        "id": 4,
-        "name": "Mary Poppendieck", 
-        "number": "39-23-6423122"
-    }
-]
-
 app.get('/info', (_, response) => {
     const date = new Date()    
     response.send(
@@ -42,17 +21,19 @@ app.get('/info', (_, response) => {
 })
 
 app.get('/api/persons', (_, response) => {
-    response.json(data)
+    Person.find({}).then(result => {
+        response.json(result)
+    })
 })
 
 app.get('/api/persons/:id', (request, response) => {
-    const id = parseInt(request.params.id)
-    const person = data.find(person => person.id === id)
-
-    if (!person) {
-        response.status(404).end()
-    }
-    response.json(person)
+    const id = request.params.id
+    Person.find({ _id: id }).then(result => {
+        const person = result[0]
+        response.json(person)
+    }).catch (
+        () => response.status(404).end()
+    )
 })
 
 app.delete('/api/persons/:id', (request, response) => {
