@@ -52,22 +52,22 @@ app.post('/api/persons', (request, response) => {
 
   if (!person.name) {
     response.status(400)
-    response.json({error: 'name must exist'})
+    response.json({ error: 'name must exist' })
     return
   }
   if (!person.number) {
     response.status(400)
-    response.json({error: 'number must exist'})
+    response.json({ error: 'number must exist' })
     return
   }
 
-  let duplicate    
-  Person.find({name: person.name}).then(res => {
+  let duplicate
+  Person.find({ name: person.name }).then(res => {
     duplicate = res.length > 0
   }).finally( () => {
     if (duplicate) {
       response.status(400)
-      response.json({error: 'name must be unique'})
+      response.json({ error: 'name must be unique' })
     } else {
       person.save().then(() => response.json(person))
         .catch(error => response.status(400).send(error))
@@ -88,7 +88,7 @@ const errorHandler = (error, _, response, next) => {
 
   if (error.name === 'CastError') {
     return response.status(400).send({ error: 'malformatted id' })
-  } 
+  }
 
   next(error)
 }
