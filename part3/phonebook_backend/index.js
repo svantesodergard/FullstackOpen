@@ -12,13 +12,6 @@ app.use(cors())
 app.use(express.json())
 app.use(morgan('tiny'))
 
-app.get('/info', (_, response) => {
-    const date = new Date()    
-    response.send(
-        `<p>Phonebook has info for ${data.length} people</p>
-<p>${date.toUTCString()}</p>`
-    )
-})
 
 app.get('/api/persons', (_, response) => {
     Person.find({}).then(result => {
@@ -26,21 +19,26 @@ app.get('/api/persons', (_, response) => {
     })
 })
 
-app.get('/api/persons/:id', (request, response) => {
+app.get('/api/persons/:id', (request, response, next) => {
     const id = request.params.id
-    Person.find({ _id: id }).then(result => {
-        const person = result[0]
+    Person.findById(id).then(person => {
+        if (!person) {
+            response.status(404).end()
+            return
+        }
         response.json(person)
-    }).catch (
-        () => response.status(404).end()
-    )
+    }).catch(error => next(error))
 })
 
-app.delete('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id)
-    data = data.filter(note => note.id !== id)
-
-    response.status(204).end()
+app.delete('/api/persons/:id', (request, response, next) => {
+    const id = request.params.id
+    Person.findByIdAndDelete(id).then( person => {
+        if (person) {
+            response.status(204).end()
+        } else {
+            response.status(404).end()
+        }
+    }).catch(error => next(error))
 })
 
 app.post('/api/persons', (request, response) => {
@@ -71,6 +69,18 @@ app.post('/api/persons', (request, response) => {
     response.json(data[data.length - 1])
 })
 
+
+const errorHandler = (error, _, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' })
+  } 
+
+  next(error)
+}
+
+app.use(errorHandler)
 
 const PORT = 3001
 app.listen(PORT, () => {
