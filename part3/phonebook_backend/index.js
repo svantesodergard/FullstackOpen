@@ -10,63 +10,76 @@ app.use(express.static('dist'))
 app.use(cors())
 
 app.use(express.json())
-app.use(morgan('tiny'))
+
+morgan.token('data', function(req) {return JSON.stringify(req.body) })
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms :data'))
+
 
 
 app.get('/api/persons', (_, response) => {
-    Person.find({}).then(result => {
-        response.json(result)
-    })
+  Person.find({}).then(result => {
+    response.json(result)
+  })
 })
 
 app.get('/api/persons/:id', (request, response, next) => {
-    const id = request.params.id
-    Person.findById(id).then(person => {
-        if (!person) {
-            response.status(404).end()
-            return
-        }
-        response.json(person)
-    }).catch(error => next(error))
+  const id = request.params.id
+  Person.findById(id).then(person => {
+    if (!person) {
+      response.status(404).end()
+      return
+    }
+    response.json(person)
+  }).catch(error => next(error))
 })
 
 app.delete('/api/persons/:id', (request, response, next) => {
-    const id = request.params.id
-    Person.findByIdAndDelete(id).then( person => {
-        if (person) {
-            response.status(204).end()
-        } else {
-            response.status(404).end()
-        }
-    }).catch(error => next(error))
+  const id = request.params.id
+  Person.findByIdAndDelete(id).then( person => {
+    if (person) {
+      response.status(204)
+      response.json(person)
+    } else {
+      response.status(404).end()
+    }
+  }).catch(error => next(error))
 })
 
 app.post('/api/persons', (request, response) => {
-    const person = {
-        ...request.body,
-        id: Math.floor(Math.random() * 10_000)
-    }    
+  const person = new Person({
+    ...request.body
+  })
 
-    if (!person.name) {
-        response.status(400)
-        response.json({error: 'name must exist'})
-        return
+  if (!person.name) {
+    response.status(400)
+    response.json({error: 'name must exist'})
+    return
+  }
+  if (!person.number) {
+    response.status(400)
+    response.json({error: 'number must exist'})
+    return
+  }
+
+  let duplicate    
+  Person.find({name: person.name}).then(res => {
+    duplicate = res.length > 0
+  }).finally( () => {
+    if (duplicate) {
+      response.status(400)
+      response.json({error: 'name must be unique'})
+    } else {
+      person.save().then(() => response.json(person))
+        .catch(error => response.status(400).send(error))
     }
-    if (!person.number) {
-        response.status(400)
-        response.json({error: 'number must exist'})
-        return
-    }
+  })
 
-    if(data.map(person => person.name).includes(person.name)) {
-        response.status(400)
-        response.json({error: 'name must be unique'})
-        return
-    }
+})
 
-    data.push(person)
-
-    response.json(data[data.length - 1])
+app.put('/api/persons/:id', (request, response) => {
+  Person.updateOne({ _id : request.params.id }, request.body).then(
+    () => response.json(request.body)
+  )
 })
 
 
@@ -84,5 +97,5 @@ app.use(errorHandler)
 
 const PORT = 3001
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`)
+  console.log(`Server running on port ${PORT}`)
 })
