@@ -145,6 +145,37 @@ test("blog with missing title or url is not added", async () => {
   await api.post("/api/blogs").send(missingTitle).expect(400);
 });
 
+test("a single blog can be deleted", async () => {
+  const idTobeDeleted = "5a422a851b54a676234d17f7";
+
+  await api.delete(`/api/blogs/${idTobeDeleted}`).expect(204);
+
+  const response = await api.get("/api/blogs");
+
+  assert.strictEqual(response.body.length, 5);
+  assert(!response.body.some((blog) => blog.id === idTobeDeleted));
+});
+
+test("a blog can be updated", async () => {
+  const updatedBlog = {
+    _id: "5a422a851b54a676234d17f7",
+    title: "React patterns",
+    author: "Michael Chan",
+    url: "https://reactpatterns.com/",
+    likes: 8,
+    __v: 0,
+  };
+
+  await api.put(`/api/blogs/${updatedBlog._id}`).send(updatedBlog);
+
+  const response = await api.get("/api/blogs");
+
+  assert.strictEqual(
+    response.body.find((blog) => blog.id === updatedBlog._id).likes,
+    updatedBlog.likes,
+  );
+});
+
 after(async () => {
   await mongoose.connection.close();
 });
